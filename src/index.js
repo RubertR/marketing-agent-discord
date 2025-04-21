@@ -55,45 +55,31 @@ const client = new Client({
   ]
 });
 
-// Parse monitored channel IDs
-const monitoredChannelIds = process.env.MONITORED_CHANNEL_IDS
-  ? process.env.MONITORED_CHANNEL_IDS.split(',')
-  : [];
+// Get monitored channel ID
+const monitoredChannelId = process.env.MONITORED_CHANNEL_ID || '';
 
-// Parse webhook URLs
-let webhookUrls = {};
-try {
-  webhookUrls = JSON.parse(process.env.WEBHOOK_URLS || '{}');
-  
-  // Add test webhook URL for testing purposes
-  if (process.env.NODE_ENV !== 'production') {
-    const testWebhook = `http://localhost:${PORT}/test-webhook`;
-    logger.info(`Adding test webhook URL for all monitored channels: ${testWebhook}`);
-    monitoredChannelIds.forEach(channelId => {
-      // Keep original webhook but add test webhook as well
-      webhookUrls[`${channelId}_test`] = testWebhook;
-    });
-  }
-} catch (error) {
-  logger.error(`Failed to parse webhook URLs: ${error.message}`);
+// Get webhook URL
+const webhookUrl = process.env.WEBHOOK_URL || '';
+let testWebhookUrl = null;
+
+// Add test webhook URL for testing purposes
+if (process.env.NODE_ENV !== 'production') {
+  testWebhookUrl = `http://localhost:${PORT}/test-webhook`;
+  logger.info(`Adding test webhook URL: ${testWebhookUrl}`);
 }
 
 client.once(Events.ClientReady, () => {
   logger.info(`Logged in as ${client.user.tag}`);
-  logger.info(`Monitoring ${monitoredChannelIds.length} channels: ${monitoredChannelIds.join(', ')}`);
+  logger.info(`Monitoring channel: ${monitoredChannelId}`);
 });
 
 client.on(Events.MessageCreate, async (message) => {
   // Ignore bot messages
   if (message.author.bot) return;
 
-  // Check if the message is in a monitored channel
-  if (monitoredChannelIds.includes(message.channelId)) {
-    logger.info(`Message received in monitored channel ${message.channelId}: ${message.content.substring(0, 50)}...`);
-    
-    // Get the webhook URL for this channel
-    const webhookUrl = webhookUrls[message.channelId];
-    const testWebhookUrl = webhookUrls[`${message.channelId}_test`];
+  // Check if the message is in the monitored channel
+  if (message.channelId === monitoredChannelId) {
+    logger.info(`Message received in monitored channel: ${message.content.substring(0, 50)}...`);
     
     // Try sending to both the real webhook and test webhook (if available)
     const sendPromises = [];
@@ -119,7 +105,7 @@ client.on(Events.MessageCreate, async (message) => {
         logger.error(`Failed to send message to webhook: ${error.message}`);
       }
     } else {
-      logger.warn(`No webhook URL configured for channel ${message.channelId}`);
+      logger.warn('No webhook URL configured');
     }
   }
 });
