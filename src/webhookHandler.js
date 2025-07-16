@@ -108,6 +108,7 @@ function formatMessageForWebhook(message) {
   // Vereenvoudigde payload met alleen de meest essentiële velden
   const payload = {
     text: message.content,
+    sessionId: message.author.id,
     channel: {
       id: message.channelId,
       name: message.channel?.name || 'unknown'
