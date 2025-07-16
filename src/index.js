@@ -78,6 +78,7 @@ client.on(Events.MessageCreate, async (message) => {
   if (message.author.bot) return;
 
   // Check if the message is in the monitored channel
+    logger.info('Bericht ontvangen op kanaal ${message.channelId};
   if (message.channelId === monitoredChannelId) {
     logger.info(`Message received in monitored channel: ${message.content.substring(0, 50)}...`);
     
